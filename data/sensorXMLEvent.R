@@ -1,0 +1,1 @@
+sensorXMLEvent <- "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Sensor xmlns=\"SensorSchema\">\n<ID>urn:epc:1:4.16.36</ID>\n<Observation Command=\"READ_PALLET_TAGS_ONLY\">\n    <ID>00000001</ID>\n    <Tag> <ID>urn:epc:1:2.24.400</ID> </Tag>\n    <Tag> <ID>urn:epc:1:2.24.401</ID> </Tag>\n</Observation>\n</Sensor>\n"
