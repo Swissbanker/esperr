@@ -9,16 +9,6 @@ The esperr package for R incorporates the Esper framework and implements
 an R-language interface to its XML event API. Events are defined by
 XML documents that follow an XML schema definition (XSD) document.
 }
-\details{
-\tabular{ll}{
-Package: \tab redis\cr
-Type: \tab Package\cr
-Version: \tab 0.01\cr
-Date: \tab 2010-01-26\cr
-License: \tab Apache\cr
-LazyLoad: \tab yes\cr
-}
-}
 \author{
 B. W. Lewis and Michael Kane.
 
@@ -29,7 +19,6 @@ http://esper.codehaus.org
 }
 \keyword{ package }
 \examples{
-\dontrun{
 # The package includes a sample event schema and xml event taken from
 # the Esper Reference Manual, Section 2.7.
 
@@ -68,7 +57,4 @@ registerEventListener(s,'f')
 # triggers the event handler.
 
 sendEvent(sensorXMLEvent)
-
-
-}
 }

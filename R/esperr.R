@@ -52,3 +52,9 @@ sendEvent <- function(event)
 {
   .jcall(.esper(),"V","sendEvent",as.character(event))
 }
+
+streamServer <- function(port, root, magic)
+{
+  .jcall(.esper(),"V", "streamListener", as.integer(port), 
+           as.character(root), as.character(magic));
+}
