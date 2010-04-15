@@ -158,11 +158,11 @@ public class REP
     }
   }
 
-  public void spigot()
+  public void spigot(int rep)
   {
     String rareEvent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Sensor xmlns=\"SensorSchema\">\n<ID>homer</ID>\n<Observation Command=\"READ_PALLET_TAGS_ONLY\">\n    <ID>00000001</ID>\n    <Tag> <ID>urn:epc:1:2.24.400</ID> </Tag>\n    <Tag> <ID>urn:epc:1:2.24.401</ID> </Tag>\n</Observation>\n</Sensor>\n";
     String commonEvent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Sensor xmlns=\"SensorSchema\">\n<ID>urn:epc:1:4.16.36</ID>\n<Observation Command=\"READ_PALLET_TAGS_ONLY\">\n    <ID>00000001</ID>\n    <Tag> <ID>urn:epc:1:2.24.400</ID> </Tag>\n    <Tag> <ID>urn:epc:1:2.24.401</ID> </Tag>\n</Observation>\n</Sensor>\n";
-    for(int k=1;k<1000;++k) {
+    for(int k=1;k<rep;++k) {
       for(int j=1;j<1000;++j) sendEvent(commonEvent);
       sendEvent(rareEvent);
     }
