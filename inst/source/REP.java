@@ -157,12 +157,25 @@ public class REP
 	}
     }
   }
+
+  public void spigot()
+  {
+    String rareEvent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Sensor xmlns=\"SensorSchema\">\n<ID>homer</ID>\n<Observation Command=\"READ_PALLET_TAGS_ONLY\">\n    <ID>00000001</ID>\n    <Tag> <ID>urn:epc:1:2.24.400</ID> </Tag>\n    <Tag> <ID>urn:epc:1:2.24.401</ID> </Tag>\n</Observation>\n</Sensor>\n";
+    String commonEvent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Sensor xmlns=\"SensorSchema\">\n<ID>urn:epc:1:4.16.36</ID>\n<Observation Command=\"READ_PALLET_TAGS_ONLY\">\n    <ID>00000001</ID>\n    <Tag> <ID>urn:epc:1:2.24.400</ID> </Tag>\n    <Tag> <ID>urn:epc:1:2.24.401</ID> </Tag>\n</Observation>\n</Sensor>\n";
+    for(int k=1;k<1000;++k) {
+      for(int j=1;j<1000;++j) sendEvent(commonEvent);
+      sendEvent(rareEvent);
+    }
+  }
+
 /* XXX End of experimental stuff */
 
 /* The following classes and functions are internal to REP */
 /* streamServer is a trivially simple tcp server that processes
  * incoming events defined as XML documents. It can handle a much higher
  * volume of incoming events than the corresponding R sendEvents method.
+ *
+ * XXX readline is too slow; read into a large buffer and then parse...
  */
   class streamServer
   {
