@@ -58,3 +58,14 @@ streamServer <- function(port, root, magic)
   .jcall(.esper(),"V", "streamListener", as.integer(port), 
            as.character(root), as.character(magic));
 }
+
+esperRedisConnect <- function(host, port)
+{
+  .jcall(.esper(),"V","redisConnect",as.character(host),as.integer(port));
+}
+
+registerRedisEventListener <- function(statement, key=sub('/','',tempfile(pattern='event',tmpdir='')))
+{
+  .jcall(.esper(),"V","addRedisEventListener",statement$esperObject,key)
+}
+

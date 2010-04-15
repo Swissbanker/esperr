@@ -9,4 +9,5 @@ REP:
 
 clean:
 	rm -rf *.class net
+	rm -rf  net
 	mkdir -p net/illposed/esperr

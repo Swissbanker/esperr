@@ -1,6 +1,7 @@
 package net.illposed.esperr;
 
 import com.espertech.esper.client.*;
+import com.espertech.esper.event.*;
 import net.illposed.esperr.*;
 
 import org.apache.commons.logging.Log;
@@ -27,6 +28,7 @@ public class REP
   public Rengine re;
   public EPServiceProvider epService;
   private Log log = LogFactory.getLog (REP.class);
+  private BasicRedis redisClient;
 
 /* R interface functions
  * The program proceeds as follows:
@@ -50,8 +52,8 @@ public class REP
     ConfigurationEventTypeXMLDOM epcfg = new ConfigurationEventTypeXMLDOM ();
     epcfg.setRootElementName (rootName);
     epcfg.setSchemaResource (schema);
-    epService.getEPAdministrator ().
-      getConfiguration ().addEventType (eventName, epcfg);
+    epService.getEPAdministrator ().getConfiguration ().
+      addEventType (eventName, epcfg);
     System.out.println ("setup EP done");
   }
 // Call this from R to create a new statement
@@ -85,12 +87,77 @@ public class REP
 // Call this from R to start an stream server that listens for events with
 // the specified root node on the specified port. Include the "magic" stream
 // in an event to terminate the server.
-  public void streamListener(int port, String root, String magic)
+  public void streamListener (int port, String root, String magic)
   {
-    try {
-      streamServer ss = new streamServer(port, root, magic);
-    } catch(Exception e) {}
+    try
+    {
+      streamServer ss = new streamServer (port, root, magic);
+    } catch (Exception e)
+    {
+    }
   }
+
+/* Experimental methods
+ *
+ */
+
+  public String eventToDoc (EventBean eb)
+  {
+    StringBuffer sb = new StringBuffer ();
+    String[]en = eb.getEventType ().getPropertyNames ();
+    EventBeanReaderDefaultImpl er = new
+      EventBeanReaderDefaultImpl (eb.getEventType ());
+    Object[]ob = er.read (eb);
+    for (int j = 0; j < en.length; ++j)
+      {
+	sb.append ("<" + en[j] + ">");
+	sb.append (ob[j].toString ());
+	sb.append ("</" + en[j] + ">\n");
+      }
+    return (sb.toString ());
+  }
+
+  public void redisConnect (String host, int port)
+  {
+    try
+    {
+      redisClient = new BasicRedis (host, port);
+    }
+    catch (Exception ex)
+    {
+      System.err.println ("redisConnect error");
+    }
+  }
+
+  public void addRedisEventListener (Statement s, String key)
+  {
+    s.addListener (new RL (key));
+  }
+
+  public class RL implements UpdateListener
+  {
+    String key = null;
+    public RL (String s)
+    {
+      key = s;
+    }
+
+    public void update (EventBean[]newEvents, EventBean[]oldEvents)
+    {
+      if (newEvents.length == 1 && oldEvents == null)
+	{
+	  try
+	  {
+	    redisClient.set (key, eventToDoc (newEvents[0]));
+	  }
+	  catch (Exception ex)
+	  {
+	  }
+	  return;
+	}
+    }
+  }
+/* XXX End of experimental stuff */
 
 /* The following classes and functions are internal to REP */
 /* streamServer is a trivially simple tcp server that processes
@@ -100,38 +167,39 @@ public class REP
   class streamServer
   {
     public streamServer (int port, String root,
-                         String magic) throws IOException
+			 String magic) throws IOException
     {
       boolean run = true;
       String termini = "</" + root + ">";
       String s;
       ServerSocket ss = new ServerSocket (port);
       while (run)
-        {
-          Socket cs = ss.accept ();
-          StringBuffer sb = new StringBuffer ();
-          BufferedReader data = new
-            BufferedReader (new InputStreamReader (cs.getInputStream ()));
-            s = data.readLine ();
-          while (s != null)
-            {
-              sb.append (s);
-              if (s.contains (magic))
-                run = false;
-              if (s.contains (termini)) {
-                sendEvent (sb.toString ());
-                sb.delete(0,sb.length());
-              }
-              s = data.readLine ();
-            }
-          data.close ();
-          cs.close ();
-        }
+	{
+	  Socket cs = ss.accept ();
+	  StringBuffer sb = new StringBuffer ();
+	  BufferedReader data = new
+	    BufferedReader (new InputStreamReader (cs.getInputStream ()));
+	    s = data.readLine ();
+	  while (s != null)
+	    {
+	      sb.append (s);
+	      if (s.contains (magic))
+		run = false;
+	      if (s.contains (termini))
+		{
+		  sendEvent (sb.toString ());
+		  sb.delete (0, sb.length ());
+		}
+	      s = data.readLine ();
+	    }
+	  data.close ();
+	  cs.close ();
+	}
       ss.close ();
     }
   }
 
-
+// The basic R event callback wrapper
   public class UL implements UpdateListener
   {
     String callback = null;
@@ -147,40 +215,69 @@ public class REP
     public void update (EventBean[]newEvents, EventBean[]oldEvents)
     {
       if (newEvents.length == 1 && oldEvents == null)
-        {
-          String v = prefix;
-          REXP revent = re.createRJavaRef (newEvents[0]);
-          re.assign (v, revent);
-          re.eval (callback + "(" + v + ")");
-          return;
-        }
+	{
+	  String v = prefix;
+	  REXP revent = re.createRJavaRef (newEvents[0]);
+	  re.assign (v, revent);
+	  re.eval (callback + "(" + v + ")");
+	  return;
+	}
       if (newEvents.length == 1 && oldEvents.length == 1)
-        {
-          String v = prefix + ".new";
-          REXP revent = re.createRJavaRef (newEvents[0]);
-          re.assign (v, revent);
-          v = prefix + ".old";
-          REXP orevent = re.createRJavaRef (oldEvents[0]);
-          re.assign (v, orevent);
-          re.eval (callback + "('" + v + "')");
-          return;
-        }
+	{
+	  String v = prefix + ".new";
+	  REXP revent = re.createRJavaRef (newEvents[0]);
+	  re.assign (v, revent);
+	  v = prefix + ".old";
+	  REXP orevent = re.createRJavaRef (oldEvents[0]);
+	  re.assign (v, orevent);
+	  re.eval (callback + "('" + v + "')");
+	  return;
+	}
       for (int j = 0; j < newEvents.length; ++j)
-        {
-          String v = prefix + ".new." + j;
-          REXP revent = re.createRJavaRef (newEvents[j]);
-          re.assign (v, revent);
-        }
+	{
+	  String v = prefix + ".new." + j;
+	  REXP revent = re.createRJavaRef (newEvents[j]);
+	  re.assign (v, revent);
+	}
       if (oldEvents != null)
-        {
-          for (int j = 0; j < newEvents.length; ++j)
-            {
-              String v = prefix + ".old." + j;
-              REXP revent = re.createRJavaRef (oldEvents[j]);
-              re.assign (v, revent);
-            }
-        }
+	{
+	  for (int j = 0; j < newEvents.length; ++j)
+	    {
+	      String v = prefix + ".old." + j;
+	      REXP revent = re.createRJavaRef (oldEvents[j]);
+	      re.assign (v, revent);
+	    }
+	}
       re.eval (callback + "('" + prefix + "')");
     }
+  }
+}
+
+/* An ultra-basic Redis client class for storing output events. */
+class BasicRedis
+{
+  Socket clientSocket;
+
+  public BasicRedis (String host, int port) throws java.io.IOException
+  {
+    clientSocket = new Socket (host, port);
+  }
+
+  public String set (String key, String value) throws java.io.IOException
+  {
+    DataOutputStream os =
+      new DataOutputStream (clientSocket.getOutputStream ());
+    BufferedReader is =
+      new BufferedReader (new
+			  InputStreamReader (clientSocket.getInputStream ()));
+    String msg =
+      "SET " + key + " " + value.length () + "\r\n" + value + "\r\n";
+      os.writeBytes (msg);
+      return (is.readLine ());
+  }
+
+  public void close () throws java.io.IOException
+  {
+    clientSocket.close ();
   }
 }
