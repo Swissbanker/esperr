@@ -47,7 +47,7 @@ f <- function(event) {
 }
 
 # Register the event-handler function with the query statement.
-registerEventListener(s,'f')
+registerEventListener(s, f)
 
 # Note that Esper supports multiple simultaneous query statements, each
 # supporting multiple event handlers. Event handler functions may be

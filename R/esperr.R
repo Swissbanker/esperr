@@ -16,13 +16,6 @@
   get("esper",envir=.env)
 }
 
-esperInit <- function()
-{
-  rm("esper",envir=.env)
-  rep <- .jnew("REP",re)
-  assign("esper",rep,envir=.env)
-}
-
 esperSchema <- function(file, rootName, eventName="MyEvents")
 {
   url <- file
@@ -39,7 +32,9 @@ esperStatement <- function(string)
 # The JRI rni interface seems to have trouble storing data in environments:(
 registerEventListener <- function(statement, callback, prefix=sub('/','',tempfile(pattern='event',tmpdir='')))
 {
-  .jcall(.esper(),"V","addEventListener",statement$esperObject,prefix,callback)
+  x <- match.call()
+  fname <- as.character(x['callback'])
+  .jcall(.esper(),"V","addEventListener",statement$esperObject,prefix,fname)
 }
 
 getEventString <- function(event, property)
@@ -53,15 +48,24 @@ sendEvent <- function(event)
   .jcall(.esper(),"V","sendEvent",as.character(event))
 }
 
-streamServer <- function(port, root, magic)
+socketListener <- function(port)
 {
-  .jcall(.esper(),"V", "streamListener", as.integer(port), 
-           as.character(root), as.character(magic));
+  .jcall(.esper(),"V", "socketListener", as.integer(port))
 }
 
-esperRedisConnect <- function(host, port)
+httpListener <- function(port)
 {
-  .jcall(.esper(),"V","redisConnect",as.character(host),as.integer(port));
+  .jcall(.esper(),"V", "httpListener", as.integer(port))
+}
+
+streamListener <- function(port=9595, magic="###STOP###", root)
+{
+  .jcall(.esper(), "V", "streamListener", as.integer(port), as.character(root), as.character(magic))
+}
+
+esperRedisConnect <- function(host='localhost', port=6379)
+{
+  .jcall(.esper(),"V","redisConnect",as.character(host),as.integer(port))
 }
 
 registerRedisEventListener <- function(statement, key=sub('/','',tempfile(pattern='event',tmpdir='')))
