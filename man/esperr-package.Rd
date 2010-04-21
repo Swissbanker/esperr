@@ -27,7 +27,7 @@ require('esperr')
 # Configure Esper to use the sample schema. An event schema is required.
 # The 'Sensor' parameter is the document root node name (also required).
 schema <- paste(system.file(package='esperr'),"/schema/sensor.xsd",sep='')
-esperSchema(schema,'Sensor')
+esperXMLEventSchema(schema,'Sensor')
 
 # The sensorXMLEvent represents an example event
 data(sensorXMLEvent)

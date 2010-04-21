@@ -47,7 +47,7 @@ B. W. Lewis
 # (Assumes a Redis server is running locally)
 require('esperr')
 schema <- paste(system.file(package='esperr'),"/schema/sensor.xsd",sep='')
-esperSchema(schema,'Sensor')
+esperXMLEventSchema(schema,'Sensor')
 data(sensorXMLEvent)
 s <- esperStatement('select ID,Observation.Command from MyEvents')
 registerRedisEventListener('sensorEvent')

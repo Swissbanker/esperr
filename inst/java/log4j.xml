@@ -4,8 +4,8 @@
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
 
    <appender name="terminal" class="org.apache.log4j.ConsoleAppender">
-      <param name="Threshold" value="DEBUG"/>
-      <param name="Target" value="System.out"/>
+      <param name="Threshold" value="ERROR"/>
+      <param name="Target" value="System.err"/>
       <layout class="org.apache.log4j.PatternLayout">
          <param name="ConversionPattern" value="%d{ABSOLUTE} %-5p [%c{1}] %m%n"/>
       </layout>
@@ -15,15 +15,15 @@
    		Modify to DEBUG for more output, or INFO for less output 
    	-->  
    <logger name="com.espertech.esper.example">
-      <level value="INFO"/>
+      <level value="ERROR"/>
    </logger>
 
    <logger name="com.espertech.esper">
-      <level value="WARN"/>
+      <level value="ERROR"/>
    </logger>
 
    <root>
-      <level value="WARN"/>
+      <level value="ERROR"/>
       <appender-ref ref="terminal"/>
    </root>
    

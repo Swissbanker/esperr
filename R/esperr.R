@@ -16,11 +16,16 @@
   get("esper",envir=.env)
 }
 
-esperSchema <- function(file, rootName, eventName="MyEvents")
+esperConfigureBean <- function(eventName, object)
+{
+  .jcall(.esper(),"V","configureBean",eventName, .jcast(object))
+}
+
+esperXMLEventSchema <- function(file, rootName, eventName="MyEvents")
 {
   url <- file
   if(!grepl(':',url)) url <- paste('file:',url,sep='')
-  .jcall(.esper(),"V","setup",url,rootName,eventName)
+  .jcall(.esper(),"V","configureXMLEvent",url,rootName,eventName)
 }
 
 esperStatement <- function(string)
@@ -48,19 +53,19 @@ sendEvent <- function(event)
   .jcall(.esper(),"V","sendEvent",as.character(event))
 }
 
-socketListener <- function(port)
+sendBean <- function(stream, object)
 {
-  .jcall(.esper(),"V", "socketListener", as.integer(port))
+  .jcall(.esper(),"V","sendEvent",as.character(stream), .jcast(object))
 }
 
-httpListener <- function(port)
-{
-  .jcall(.esper(),"V", "httpListener", as.integer(port))
-}
-
-streamListener <- function(port=9595, magic="###STOP###", root)
+xmlListener <- function(port=9595, magic="###STOP###", root)
 {
   .jcall(.esper(), "V", "streamListener", as.integer(port), as.character(root), as.character(magic))
+}
+
+textListener <- function(port=9595, streamToken="stream", delim=",", magic="###STOP###")
+{
+  .jcall(.esper(), "V", "textServer", as.integer(port), as.character(delim), as.character(streamToken), as.character(magic));
 }
 
 esperRedisConnect <- function(host='localhost', port=6379)

@@ -1,5 +1,5 @@
-\name{streamListener}
-\alias{streamListener}
+\name{xmlListener}
+\alias{xmlListener}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Start a super-basic XML event stream listener on a TCP/IP port.
@@ -9,7 +9,7 @@ An eventStream listener listens for incoming XML events on a socket,
 feeding them into the Esper engine for processing.
 }
 \usage{
-streamListener(port = 9595, magic = "###STOP###", root)
+xmlListener(port = 9595, magic = "###STOP###", root)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -42,7 +42,7 @@ B. W. Lewis
 \dontrun{
 require('esperr')
 schema <- paste(system.file(package='esperr'),"/schema/sensor.xsd",sep='')
-esperSchema(schema,'Sensor')
+esperXMLEventSchema(schema,'Sensor')
 data(sensorXMLEvent)
 s <- esperStatement('select ID,Observation.Command from MyEvents')
 f <- function(event) {
@@ -53,7 +53,7 @@ f <- function(event) {
   rm(event)
 }
 registerEventListener(s, f)
-streamListener(port = 9595, magic = "###STOP###", root="Sensor")
+xmlListener(port = 9595, magic = "###STOP###", root="Sensor")
 
 # Now, the R process waits for events on port 9595.
 # Open a terminal window, and type:

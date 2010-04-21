@@ -1,12 +1,23 @@
 package net.illposed.esperr;
 
+import net.illposed.esperr.*;
+
 import com.espertech.esper.client.*;
 import com.espertech.esper.event.*;
+import com.espertech.esper.event.bean.*;
 import com.espertech.esperio.socket.*;
 import com.espertech.esperio.socket.config.*;
-import com.espertech.esperio.http.*;
-import com.espertech.esperio.http.config.*;
-import net.illposed.esperr.*;
+import com.espertech.esper.client.EventBean;
+import com.espertech.esper.client.EventType;
+import com.espertech.esper.core.EPServiceProviderSPI;
+import com.espertech.esper.event.EventBeanManufactureException;
+import com.espertech.esper.event.EventAdapterServiceImpl;
+import com.espertech.esper.event.EventBeanManufacturer;
+import com.espertech.esper.event.EventTypeSPI;
+import com.espertech.esper.event.WriteablePropertyDescriptor;
+import com.espertech.esper.util.SimpleTypeParser;
+import com.espertech.esper.util.SimpleTypeParserFactory;
+import com.espertech.esper.epl.core.MethodResolutionServiceImpl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -25,16 +36,18 @@ import org.rosuda.JRI.RConsoleOutputStream;
 import java.util.LinkedList;
 import java.net.*;
 import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
 import javax.xml.parsers.*;
+import java.lang.reflect.*;
 
 public class REP
 {
   public Rengine re;
   public EPServiceProvider epService;
+  public EsperIOSocketAdapter socketAdapter;
   private Log log = LogFactory.getLog (REP.class);
   private BasicRedis redisClient;
-  public EsperIOSocketAdapter socketAdapter;
-  public EsperIOHTTPAdapter httpAdapter;
 
 /* R interface functions
  * The program proceeds as follows:
@@ -45,20 +58,40 @@ public class REP
  * 5. Add event listeners from 3 to the statement
  * 6. Start sending events.
  */
+
 // Initialize REP with an instance of the running R engine (use .jengine)
   public REP (Rengine R)
   {
     re = R;
   }
-// Setup the EP
-  public void setup (String schema, String rootName, String eventName)
+// Generic engine configuration
+  public void configureBean (String eventName, Object obj)
+  {
+    epService = EPServiceProviderManager.getDefaultProvider ();
+    try
+    {
+      epService.getEPAdministrator ().
+        getConfiguration ().addEventType (eventName, obj.getClass ());
+    }
+    catch (Exception ex)
+    {
+      System.err.println (ex.toString ());
+    }
+  }
+// Setup EP for XML events
+  public void configureXMLEvent (String schema, String rootName,
+                                 String eventName)
   {
     epService = EPServiceProviderManager.getDefaultProvider ();
     ConfigurationEventTypeXMLDOM epcfg = new ConfigurationEventTypeXMLDOM ();
     epcfg.setRootElementName (rootName);
     epcfg.setSchemaResource (schema);
-    epService.getEPAdministrator ().getConfiguration ().
-      addEventType (eventName, epcfg);
+    epService.getEPAdministrator ().
+      getConfiguration ().addEventType (eventName, epcfg);
+  }
+  public void destroyAllStatements ()
+  {
+    epService.getEPAdministrator ().destroyAllStatements ();
   }
 // Call this from R to create a new statement
   public Statement newStatement (String query)
@@ -87,6 +120,12 @@ public class REP
     };
     epService.getEPRuntime ().sendEvent (doc);
   }
+  // Generic Bean event sender to specified stream
+  public void sendEvent (String stream, Object event)
+  {
+    EventSender sender = epService.getEPRuntime ().getEventSender (stream);
+    sender.sendEvent (event);
+  }
 
 /* 
  * Experimental methods
@@ -96,99 +135,55 @@ public class REP
 // It's really just test code, but does offer reasonable performance.
 // The method blocks the controlling R process (aside from callbacks) until
 // the "magic" string is received.
-class streamServer
-{
-  public streamServer (int port, String root,
-                      String magic) throws IOException
+  class xmlServer
   {
-    boolean run = true;
-    String termini = "</" + root + ">";
-    String s;
-    ServerSocket ss = new ServerSocket (port);
-    System.out.println ("Waiting for XML events on port "+port);
-    while (run)
-     {
-       Socket cs = ss.accept ();
-       StringBuffer sb = new StringBuffer ();
-       BufferedReader data = new
-         BufferedReader (new InputStreamReader (cs.getInputStream ()));
-         s = data.readLine ();
-       while (s != null)
-         {
-           sb.append (s);
-           if (s.contains (magic))
-             run = false;
-           if (s.contains (termini))
-             {
-               sendEvent (sb.toString ());
-               sb.delete (0, sb.length ());
-             }
-           s = data.readLine ();
-         }
-       data.close ();
-       cs.close ();
-     }
-    ss.close ();
-  }
-}
-
-public void streamListener(int port, String root, String magic)
-{
-  try{
-    streamServer ss = new streamServer(port, root, magic);
-  } catch(Exception ex){System.err.println(ex.toString());}
-}
-
-// Call this from R to start an stream server that listens for events on a port
-  public void socketListener (int port)
-  {
-    try
+    public xmlServer (int port, String root,
+                         String magic) throws IOException
     {
-      ConfigurationSocketAdapter adapterConfig =
-        new ConfigurationSocketAdapter ();
-      SocketConfig socket = new SocketConfig ();
-      socket.setDataType (DataType.CSV);
-      socket.setPort (port);
-      adapterConfig.getSockets ().put ("socketListener", socket);
-      // start adapter
-      socketAdapter = new EsperIOSocketAdapter (adapterConfig, "engineURI");
-      socketAdapter.start ();
-    } catch (Exception e)
-    {
-      System.err.println ("socketListener error " + e.toString ());
-    }
-    System.out.println ("OK");
-  }
-
-  public void stopSocketListener ()
-  {
-    try
-    {
-      socketAdapter.destroy ();
-    } catch (Exception e)
-    {
-      System.err.println (e.toString ());
+      boolean run = true;
+      String termini = "</" + root + ">";
+      String s;
+      ServerSocket ss = new ServerSocket (port);
+        System.out.println ("Waiting for XML events on port " + port);
+      while (run)
+        {
+          Socket cs = ss.accept ();
+          StringBuffer sb = new StringBuffer ();
+          BufferedReader data = new
+            BufferedReader (new InputStreamReader (cs.getInputStream ()));
+            s = data.readLine ();
+          while (s != null)
+            {
+              sb.append (s);
+              if (s.contains (magic))
+                run = false;
+              if (s.contains (termini))
+                {
+                  sendEvent (sb.toString ());
+                  sb.delete (0, sb.length ());
+                }
+              s = data.readLine ();
+            }
+          data.close ();
+          cs.close ();
+        }
+      ss.close ();
     }
   }
 
-  public void httpListener (int port)
+  public void xmlListener (int port, String root, String magic)
   {
-    ConfigurationHTTPAdapter adapterConfig = new ConfigurationHTTPAdapter ();
-    Service service = new Service ();
-    service.setPort (port);
-    service.setNio (true);
-    adapterConfig.getServices ().put ("http", service);
-    GetHandler getHandler = new GetHandler ();
-    getHandler.setPattern ("*");
-    getHandler.setService ("http");
-    adapterConfig.getGetHandlers ().add (getHandler);
-// start adapter
-    httpAdapter = new EsperIOHTTPAdapter (adapterConfig, "engineURI");
-    System.out.println ("yikes");
-    httpAdapter.start ();
-    System.out.println (adapterConfig.toString ());
+    try
+    {
+      xmlServer ss = new xmlServer (port, root, magic);
+    } catch (Exception ex)
+    {
+      System.out.println (ex.toString ());
+    }
   }
 
+
+// XXX There is a method available in Esper already for this...
   public String eventToDoc (EventBean eb)
   {
     StringBuffer sb = new StringBuffer ();
@@ -260,6 +255,91 @@ public void streamListener(int port, String root, String magic)
       }
   }
 
+  public void spigot2 (int m, int n, String stream, Object rare,
+                       Object common)
+  {
+    for (int k = 1; k < m; ++k)
+      {
+        for (int j = 1; j < n; ++j)
+          sendEvent (stream, common);
+        sendEvent (stream, rare);
+      }
+  }
+
+
+// This is an ultra-basic method that listens for text events on a port.
+// Text event formatting is similar to the "socket" method in esperio:
+// stream=<name>,property=<value>,...
+// with one event per line.
+// I'm using java reflection here, as I had trouble with the default Esper
+// Event manufacturer methods.
+// It's really just test code, but does offer reasonable performance.
+// The method blocks the controlling R process (aside from callbacks) until
+// the "magic" string is received.
+  public void textServer (int port, String delim, String streamToken, String magic) throws IOException
+  {
+    EPServiceProviderSPI engine = (EPServiceProviderSPI) epService;
+    Class<?> stringClass = (new String()).getClass();
+    boolean run = true;
+    String s;
+    ServerSocket ss = new ServerSocket (port);
+      System.out.println ("Waiting for x events on port " + port);
+    while (run)
+      {
+        Socket cs = ss.accept ();
+        BufferedReader data = new
+          BufferedReader (new InputStreamReader (cs.getInputStream ()));
+          s = data.readLine ();
+        while (s != null)
+          {
+            if(processStringEvent(s,delim,streamToken,magic)){
+              run=false;
+              break;
+            }
+            s = data.readLine ();
+          }
+        data.close ();
+        cs.close ();
+      }
+    ss.close ();
+  }
+
+  boolean processStringEvent(String text, String delim, String streamToken, String magic)
+  {
+    EPServiceProviderSPI engine = (EPServiceProviderSPI) epService;
+    Class<?> stringClass = (new String()).getClass();
+    Map <String,String> parse = new HashMap<String,String>();
+    String[] s = text.split(delim);
+    for(int j=0;j<s.length;++j) {
+      if(s[j]==magic) return true;
+      String[] r = s[j].split("=");
+// XXX We use a questionably-strict setter convention here:
+      if(j>0) r[0] = "set" + r[0].substring(0,1).toUpperCase() 
+                           + r[0].substring(1);
+      parse.put(r[0],r[1]);
+    }
+    String eventTypeName = parse.get(streamToken);
+    parse.remove(streamToken);
+    Class<?> c = null;
+    try {
+      EventSender sender = epService.getEPRuntime().getEventSender(eventTypeName);
+      EventType eventType = engine.getEventAdapterService().getExistsTypeByName(eventTypeName);
+      c = eventType.getUnderlyingType();
+      Object event = c.newInstance();
+      String setter;
+      for (Iterator it=parse.keySet().iterator(); it.hasNext(); ) {
+        setter = (String)it.next();
+        Method n = c.getDeclaredMethod(setter,stringClass);
+        n.invoke(event, parse.get(setter));
+      }
+      sender.sendEvent (event);
+    } catch (Throwable e) { System.err.println(e); }
+    return false;
+  }
+
+
+
+
 /* XXX End of experimental stuff */
 
 /* The following classes and functions are internal to REP */
@@ -316,7 +396,12 @@ public void streamListener(int port, String root, String magic)
       re.eval (callback + "('" + prefix + "')");
     }
   }
+
+
 }
+
+
+/* XXX Experimental classes */
 
 /* An ultra-basic Redis client class for storing output events. */
 class BasicRedis
@@ -345,4 +430,7 @@ class BasicRedis
   {
     clientSocket.close ();
   }
+
 }
+
+
