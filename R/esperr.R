@@ -48,6 +48,11 @@ getEventString <- function(event, property)
   return(.jcall(obj,"S","toString"))
 }
 
+destroyAllStatements <- function()
+{
+  .jcall(.esper(),"V","destroyAllStatements")
+}
+
 sendEvent <- function(event)
 {
   .jcall(.esper(),"V","sendEvent",as.character(event))

@@ -132,7 +132,6 @@ public class REP
  */
 
 // This is an ultra-basic method that listens for XML events on a port.
-// It's really just test code, but does offer reasonable performance.
 // The method blocks the controlling R process (aside from callbacks) until
 // the "magic" string is received.
   class xmlServer
@@ -270,10 +269,10 @@ public class REP
 // This is an ultra-basic method that listens for text events on a port.
 // Text event formatting is similar to the "socket" method in esperio:
 // stream=<name>,property=<value>,...
-// with one event per line.
+// with one event per line. It's a little more flexible than esperio since
+// the delimiter and stream token can be set.
 // I'm using java reflection here, as I had trouble with the default Esper
-// Event manufacturer methods.
-// It's really just test code, but does offer reasonable performance.
+// Event manufacturer methods. The fast bean manufacturer methods are preferred.
 // The method blocks the controlling R process (aside from callbacks) until
 // the "magic" string is received.
   public void textServer (int port, String delim, String streamToken, String magic) throws IOException
@@ -339,7 +338,6 @@ public class REP
     } catch (Throwable e) { System.err.println(e); }
     return false;
   }
-
 
 
 
