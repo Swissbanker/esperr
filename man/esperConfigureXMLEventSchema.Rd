@@ -1,13 +1,13 @@
-\name{esperXMLEventSchema}
-\alias{esperXMLEventSchema}
+\name{esperConfigureXMLEventSchema}
+\alias{esperConfigureXMLEventSchema}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Configure XML Event Schema}
 \description{
-Use esperXMLEventSchema to specify an event XML schema document (XSD) file and
+Use esperConfigureXMLEventSchema to specify an event XML schema document (XSD) file and
 associate the event schema with a stream name.
 }
 \usage{
-esperXMLEventSchema(file, rootName, eventName = "MyEvents")
+esperConfigureXMLEventSchema(file, rootName, eventName = "MyEvents")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -52,5 +52,5 @@ schema <- paste(system.file(package='esperr'),"/schema/sensor.xsd",sep='')
 # Let's look at this schema document:
 cat(paste(readLines(schema),collapse="\n"))
 # Finally, register this stream as "SensorEvents"
-esperXMLEventSchema(schema,'Sensor',eventName="SensorEvents")
+esperConfigureXMLEventSchema(schema,'Sensor',eventName="SensorEvents")
 }

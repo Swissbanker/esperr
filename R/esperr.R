@@ -16,12 +16,17 @@
   get("esper",envir=.env)
 }
 
-esperConfigureBean <- function(eventName, object)
+esperConfigureObject <- function(object, eventName="MyEvents")
 {
   .jcall(.esper(),"V","configureBean",eventName, .jcast(object))
 }
 
-esperXMLEventSchema <- function(file, rootName, eventName="MyEvents")
+esperConfigureClass <- function(className, eventName="MyEvents")
+{
+  .jcall(.esper(),"V","configureBean",as.character(eventName),as.character(className))
+}
+
+esperConfigureXMLEventSchema <- function(file, rootName, eventName="MyEvents")
 {
   url <- file
   if(!grepl(':',url)) url <- paste('file:',url,sep='')

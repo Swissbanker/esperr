@@ -64,7 +64,21 @@ public class REP
   {
     re = R;
   }
-// Generic engine configuration
+// Generic engine POJO configuration
+  public void configureBean (String eventName, String className)
+  {
+    epService = EPServiceProviderManager.getDefaultProvider ();
+    try
+    {
+      epService.getEPAdministrator ().
+        getConfiguration().addEventType (eventName, Class.forName(className));
+    }
+    catch (Exception ex)
+    {
+      System.err.println (ex.toString ());
+    }
+  }
+// Generic engine POJO configuration
   public void configureBean (String eventName, Object obj)
   {
     epService = EPServiceProviderManager.getDefaultProvider ();
@@ -339,9 +353,11 @@ public class REP
     return false;
   }
 
-
-
-/* XXX End of experimental stuff */
+/* 
+ *
+ * End of experimental stuff 
+ *
+ */
 
 /* The following classes and functions are internal to REP */
 
@@ -350,6 +366,7 @@ public class REP
   {
     String callback = null;
     String prefix = null;
+    int n = 0;
     public UL (String s, String v)
     {
       callback = s;
@@ -358,43 +375,19 @@ public class REP
 
 // Publish the events to R global environment and invoke the callback function
 // XXX add oldEvents and improve this scheme
+// XXX this needs a re-write
     public void update (EventBean[]newEvents, EventBean[]oldEvents)
     {
-      if (newEvents.length == 1 && oldEvents == null)
+      n = (n + 1) % 2147483647;
+      if(newEvents == null) return;
+      if (newEvents.length > 0)
         {
-          String v = prefix;
+          String v = prefix +  n;
           REXP revent = re.createRJavaRef (newEvents[0]);
           re.assign (v, revent);
           re.eval (callback + "(" + v + ")");
           return;
         }
-      if (newEvents.length == 1 && oldEvents.length == 1)
-        {
-          String v = prefix + ".new";
-          REXP revent = re.createRJavaRef (newEvents[0]);
-          re.assign (v, revent);
-          v = prefix + ".old";
-          REXP orevent = re.createRJavaRef (oldEvents[0]);
-          re.assign (v, orevent);
-          re.eval (callback + "('" + v + "')");
-          return;
-        }
-      for (int j = 0; j < newEvents.length; ++j)
-        {
-          String v = prefix + ".new." + j;
-          REXP revent = re.createRJavaRef (newEvents[j]);
-          re.assign (v, revent);
-        }
-      if (oldEvents != null)
-        {
-          for (int j = 0; j < newEvents.length; ++j)
-            {
-              String v = prefix + ".old." + j;
-              REXP revent = re.createRJavaRef (oldEvents[j]);
-              re.assign (v, revent);
-            }
-        }
-      re.eval (callback + "('" + prefix + "')");
     }
   }
 
@@ -408,19 +401,19 @@ public class REP
 class BasicRedis
 {
   Socket clientSocket;
+  DataOutputStream os;
+  BufferedReader is;
 
   public BasicRedis (String host, int port) throws java.io.IOException
   {
     clientSocket = new Socket (host, port);
+    os = new DataOutputStream (clientSocket.getOutputStream ());
+    is = new BufferedReader (new
+                          InputStreamReader (clientSocket.getInputStream ()));
   }
 
   public String set (String key, String value) throws java.io.IOException
   {
-    DataOutputStream os =
-      new DataOutputStream (clientSocket.getOutputStream ());
-    BufferedReader is =
-      new BufferedReader (new
-                          InputStreamReader (clientSocket.getInputStream ()));
     String msg =
       "SET " + key + " " + value.length () + "\r\n" + value + "\r\n";
       os.writeBytes (msg);
