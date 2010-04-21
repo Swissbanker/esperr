@@ -306,22 +306,25 @@ public class REP
 
   boolean processStringEvent(String text, String delim, String streamToken, String magic)
   {
+    if(text == null) return false;
     EPServiceProviderSPI engine = (EPServiceProviderSPI) epService;
     Class<?> stringClass = (new String()).getClass();
     Map <String,String> parse = new HashMap<String,String>();
-    String[] s = text.split(delim);
-    for(int j=0;j<s.length;++j) {
-      if(s[j]==magic) return true;
-      String[] r = s[j].split("=");
-// XXX We use a questionably-strict setter convention here:
-      if(j>0) r[0] = "set" + r[0].substring(0,1).toUpperCase() 
-                           + r[0].substring(1);
-      parse.put(r[0],r[1]);
-    }
-    String eventTypeName = parse.get(streamToken);
-    parse.remove(streamToken);
-    Class<?> c = null;
     try {
+      String[] s = text.split(delim);
+      for(int j=0;j<s.length;++j) {
+        if(s[j].contains(magic)) return true;
+        String[] r = s[j].split("=");
+// XXX We use a questionably-strict setter convention here:
+        if(j>0) r[0] = "set" + r[0].substring(0,1).toUpperCase() 
+                           + r[0].substring(1);
+        parse.put(r[0],r[1]);
+      }
+    } catch (Exception ex) {return false;}
+    try {
+      String eventTypeName = parse.get(streamToken);
+      parse.remove(streamToken);
+      Class<?> c = null;
       EventSender sender = epService.getEPRuntime().getEventSender(eventTypeName);
       EventType eventType = engine.getEventAdapterService().getExistsTypeByName(eventTypeName);
       c = eventType.getUnderlyingType();
