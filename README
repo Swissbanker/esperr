@@ -1,10 +1,9 @@
 esperr: Stream processing for R
 
-The esperr package for R incorporates the Esper framework and implements
-an R-language interface to its XML event API. Events are defined by
-XML documents that follow an XML schema definition (XSD) document. The
-package includes example schema and events.
-
+The esperr package for R incorporates the Esper framework and implements an
+R-language interface to its XML and Java bean event API. Events are defined by
+Java objects or by XML documents that follow an XML schema definition (XSD)
+document. The package includes example schema and events.
 
 Esper stream processing applications all follow this basic program:
 
