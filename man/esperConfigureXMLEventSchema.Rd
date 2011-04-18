@@ -47,10 +47,5 @@ B. W. Lewis
 \code{\link{esperStatement}}
 }
 \examples{
-require('esperr')
-schema <- paste(system.file(package='esperr'),"/schema/sensor.xsd",sep='')
-# Let's look at this schema document:
-cat(paste(readLines(schema),collapse="\n"))
-# Finally, register this stream as "SensorEvents"
-esperConfigureXMLEventSchema(schema,'Sensor',eventName="SensorEvents")
+# See the help('esperr') example.
 }

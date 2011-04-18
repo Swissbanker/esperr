@@ -2,9 +2,9 @@ Package: esperr
 Version: 0.1.0
 Date: 04-09-2010
 Title: Esper Event Stream Processing for R
-Author: B. W. Lewis <blewis@illposed.net>
+Author: B. W. Lewis <blewis@illposed.net> and Michael Kane <michael.kane@yale.edu>
 Maintainer: B. W. Lewis <blewis@illposed.net>
 Depends: R (>= 2.3.0), rJava (>= 0.4)
 Description: An integration the Esper stream processing framework with R.
-License: GPL (>= 2)
+License: GPL (>= 2.0)
 URL: http://illposed.net/esperr

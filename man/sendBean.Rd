@@ -1,23 +1,26 @@
-\name{sendEvent}
-\alias{sendEvent}
-%- Also NEED an '\alias' for EACH other topic documented here.
+\name{sendBean}
+\alias{sendBean}
 \title{
-sendEvent
+Send a bean event.
 }
 \description{
-Send an XML event into a stream, mainly for testing.
+Send an instance of an event bean class into an event stream.
 }
 \usage{
-sendEvent(event)
+sendBean(stream, object)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{event}{
-The XML (character) event.
+  \item{stream}{
+The stream name.
+}
+  \item{object}{
+An instance of an event bean class, configured with esperConfigureClass
+or esperConfigureObject.
 }
 }
 \value{
-Nothing is returned.
+Nothing is returned
 }
 \author{
 B. W. Lewis
@@ -29,12 +32,10 @@ B. W. Lewis
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(event)
+function(stream, object)
 {
-  .jcall(.esper(),"V","sendEvent",as.character(event))
+  .jcall(.esper(),"V","sendEvent",as.character(stream), .jcast(object))
   }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

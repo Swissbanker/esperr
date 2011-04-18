@@ -379,11 +379,19 @@ public class REP
     public void update (EventBean[]newEvents, EventBean[]oldEvents)
     {
       n = (n + 1) % 2147483647;
-      if(newEvents == null) return;
+      if((newEvents == null) && (oldEvents == null)) return;
       if (newEvents.length > 0)
         {
           String v = prefix +  n;
           REXP revent = re.createRJavaRef (newEvents[0]);
+          re.assign (v, revent);
+          re.eval (callback + "(" + v + ")");
+          return;
+        }
+      if (oldEvents.length > 0)
+        {
+          String v = prefix +  n;
+          REXP revent = re.createRJavaRef (oldEvents[0]);
           re.assign (v, revent);
           re.eval (callback + "(" + v + ")");
           return;
